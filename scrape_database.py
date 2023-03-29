@@ -23,11 +23,18 @@ import pandas as pd
 import string
 
 
-#####################################################
-# Function to scrape the content of the KIM website #
-#####################################################
+######################################################
+# Functions to scrape the content of the KIM website #
+######################################################
 
 def get_movie_info(letter):
+    """
+    Function to retrieve the movie info from the KIM website https://kids-in-mind.com/
+    Output: Pandas DataFrame with the following columns:
+    movie_title, movie_year, movie_rating, KIM_ratings
+    KIM ratings are processed to separate the ratings into:
+    'sex_nudity', 'violence_gore', 'language' - scores between 0 and 10
+    """
     movie_info_list = []
     movie_description_list = []
     URI = f'https://kids-in-mind.com/{letter}.htm'
@@ -77,3 +84,44 @@ def get_movie_info(letter):
     
     return movies_df
 
+
+#######################################################
+# Functions to augment the KIM data with the TMDB API #
+#######################################################
+
+
+def search_movie(api_key, query):
+    url = f"https://api.themoviedb.org/3/search/movie?api_key={api_key}&query={query}"
+    response = requests.get(url)
+    data = response.json()
+    return data['results']
+
+def get_movie_details(api_key, movie_id):
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}"
+    response = requests.get(url)
+    data = response.json()
+    return data
+
+
+def get_movie_info(api_key, query):
+    """
+    Function to retrieve the movie info using the TMDB API
+    Obtain API key from https://www.themoviedb.org/settings/api
+    Function returns the following:
+    genre_1, genre_2, overview, vote_average, run_time
+    """
+    time.sleep(2)
+    search_results = search_movie(api_key, query)
+    if search_results:
+        try:
+            movie = get_movie_details(api_key, search_results[0]['id'])
+            genre_1 = movie['genres'][0]['name']
+            genre_2 = movie['genres'][1]['name']
+            overview = movie['overview']
+            vote_average = movie['vote_average']
+            run_time = movie['runtime']
+            return genre_1, genre_2, overview, vote_average, run_time
+        except:
+            return None
+    else:
+        return None
